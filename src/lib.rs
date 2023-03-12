@@ -60,7 +60,7 @@ impl CargoTarget {
     /// This method only works when called from within the rummage crate, as it relies on cargo
     /// environment variables rummage sets in its own build.rs
     #[doc(hidden)]
-    pub fn _new() -> Self {
+    pub fn gather() -> Self {
         Self {
             profile: env!("RUMMAGE_PROFILE").to_string(),
             host: env!("RUMMAGE_HOST").to_string(),
@@ -103,7 +103,7 @@ impl RustcVersion {
     /// This method only works when called from within the rummage crate, as it relies on cargo
     /// environment variables rummage sets in its own build.rs
     #[doc(hidden)]
-    pub fn _new() -> Self {
+    pub fn gather() -> Self {
         let major = env!("RUMMAGE_RUSTC_VERSION_MAJOR");
         let minor = env!("RUMMAGE_RUSTC_VERSION_MINOR");
         let patch = env!("RUMMAGE_RUSTC_VERSION_PATCH");
@@ -149,10 +149,10 @@ pub struct CompileInfo {
 
 impl CompileInfo {
     #[doc(hidden)]
-    pub fn new() -> Self {
+    pub fn gather() -> Self {
         Self {
-            target: CargoTarget::_new(),
-            rustc: RustcVersion::_new(),
+            target: CargoTarget::gather(),
+            rustc: RustcVersion::gather(),
         }
     }
 
@@ -240,12 +240,12 @@ impl SystemInfo {
 
 #[derive(Debug)]
 pub struct RummageInfo {
-    /// Information about the crate that contains the [`rummage::info!()`] invocation
+    /// Information about the crate that contains the [`info!()`] invocation
     pub crate_info: CrateInfo,
 
     /// Information about the compilation process
     ///
-    /// Specifically, this is information about how [`rummage`] itself was compiled. In Cargo's
+    /// Specifically, this is information about how `rummage` itself was compiled. In Cargo's
     /// default configuration this will also be the same as the target crate being built, though it
     /// is possible to override this behavior in some circumstances, eg to build dependencies with
     /// the release profile even when the target crate is being built under the debug profile.
@@ -302,7 +302,7 @@ macro_rules! info {
     () => {{
         ::rummage::RummageInfo {
             crate_info: ::rummage::_crate_info!(),
-            compile_info: ::rummage::CompileInfo::new(),
+            compile_info: ::rummage::CompileInfo::gather(),
             system_info: ::rummage::SystemInfo::gather(),
             command_line: ::std::env::args().collect(),
             envvars: ::std::collections::HashMap::new(),

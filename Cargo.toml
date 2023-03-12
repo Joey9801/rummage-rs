@@ -1,11 +1,12 @@
 [package]
 name = "rummage"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 license = "MIT"
 authors = ["Joe Roberts"]
 description = "A simple and opinionated environment collector"
 repository = "https://github.com/Joey9801/rummage-rs"
+documentation = "https://docs.rs/rummage"
 keywords = ["environment", "collector", "cpuid", "system"]
 categories = ["development-tools::debugging"]
 
