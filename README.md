@@ -37,3 +37,5 @@ Which emits:
 [Latest Version]: https://img.shields.io/crates/v/rummage.svg
 [Documentation]: https://docs.rs/rummage/badge.svg
 [License]: https://img.shields.io/crates/l/rummage.svg
+[crates.io]: https://crates.io/crates/rummage
+[docs.rs]: https://docs.rs/rummage/latest/rummage
