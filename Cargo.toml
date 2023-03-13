@@ -1,6 +1,6 @@
 [package]
 name = "rummage"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 authors = ["Joe Roberts"]
@@ -9,6 +9,7 @@ repository = "https://github.com/Joey9801/rummage-rs"
 documentation = "https://docs.rs/rummage"
 keywords = ["environment", "collector", "cpuid", "system"]
 categories = ["development-tools::debugging"]
+readme = "README.md"
 
 [dependencies]
 git-version = "0.3.5"
