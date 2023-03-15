@@ -8,7 +8,7 @@ it in structured `tracing` events.
 
 ## Example usage
 
-```
+```rust
 fn main() {
     tracing_subscriber::fmt()
         .json()
