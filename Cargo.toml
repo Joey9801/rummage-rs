@@ -1,6 +1,6 @@
 [package]
 name = "rummage"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 authors = ["Joe Roberts"]
@@ -19,3 +19,6 @@ tracing = "0.1.37"
 
 [build-dependencies]
 rustc_version = "0.4.0"
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3.16", features = ["json"] }

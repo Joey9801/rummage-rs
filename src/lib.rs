@@ -1,27 +1,47 @@
-//! # Rummage
-//!
-//! Collect various buildtime and runtime properties, and provides an easy way to dump those
-//! properties into [`tracing`] event.
+#![doc = include_str!("../README.md")]
 
 use std::collections::HashMap;
-
-/// Re-export so dependent project does not have to manually depend on git-version crate
-pub use git_version::git_version;
 use tracing::Level;
 
+#[doc(hidden)]
+pub use git_version::git_version;
+
+
+/// Information about the crate that contains the [`info!`] invocation
 #[derive(Debug)]
 pub struct CrateInfo {
+    /// The full SHA256 commit hash of the git repository
     pub git_commit_hash: String,
+    
+    /// Whether the git repository is in a dirty state / has uncommitted modifications
+    pub is_git_repo_dirty: bool,
+    
+    /// The name of the binary that the crate that has the [`info!`] invocation is being built into
+    pub bin_name: String,
     pub crate_name: String,
     pub crate_version: String,
-    pub bin_name: String,
 }
 
 impl CrateInfo {
+    #[doc(hidden)]
+    pub fn new(git_version: &str, crate_name: &str, crate_version: &str, bin_name: &str) -> Self {
+        let dirty = git_version.ends_with("-dirty");
+        let hash = git_version.trim_end_matches("-dirty");
+        
+        Self {
+            git_commit_hash: hash.to_string(),
+            is_git_repo_dirty: dirty,
+            crate_name: crate_name.to_string(),
+            crate_version: crate_version.to_string(),
+            bin_name: bin_name.to_string(),
+        }
+    }
+
     fn log_debug(&self) {
         tracing::event!(
             Level::DEBUG,
             git_commit_hash = self.git_commit_hash,
+            git_repo_dirty = self.is_git_repo_dirty,
             crate_name = self.crate_name,
             crate_version = self.crate_version,
             bin_name = self.bin_name,
@@ -34,33 +54,52 @@ impl CrateInfo {
 #[doc(hidden)]
 macro_rules! _crate_info {
     () => {{
-        ::rummage::CrateInfo {
-            git_commit_hash: ::rummage::git_version!(fallback = "").to_string(),
-            crate_name: env!("CARGO_CRATE_NAME").to_string(),
-            crate_version: env!("CARGO_PKG_VERSION").to_string(),
-            bin_name: env!("CARGO_BIN_NAME").to_string(),
-        }
+        ::rummage::CrateInfo::new(
+            ::rummage::git_version!(args = ["--always", "--abbrev=0", "--match", "NOT A TAG", "--dirty=-dirty"]),
+            option_env!("CARGO_CRATE_NAME").unwrap_or("<failed to scrape>"),
+            option_env!("CARGO_PKG_VERSION").unwrap_or("<failed to scrape>"),
+            option_env!("CARGO_BIN_NAME").unwrap_or("<failed to scrape>"),
+        )
     }};
 }
 
+/// How Cargo was configured while building the crate containing the crate containing the [`info!`]
+/// invocation
 #[derive(Debug)]
 pub struct CargoTarget {
+    /// Typically either "debug" or "release"
     pub profile: String,
+    
+    /// The target triple of the environment performing the compilation
     pub host: String,
+    
+    /// The target triple of the environment the built artifact is intended for
     pub target: String,
+    
+    /// The "family" of the target, eg "unix"
     pub family: String,
+    
+    /// The specific OS within the target family, eg "linux"
     pub os: String,
+    
+    /// The CPU architecture of the target, eg "x86_64"
     pub arch: String,
+    
+    /// The number of bits in a pointer on the target platform, eg "64".
     pub pointer_width: String,
+    
+    /// The endianness of the target platform, eg "little"
     pub endian: String,
+    
+    /// A comma separated list of the features of the target platform that the compilation is
+    /// using, eg "fxsr,sse,sse2"
     pub features: String,
 }
 
 impl CargoTarget {
     /// This method only works when called from within the rummage crate, as it relies on cargo
     /// environment variables rummage sets in its own build.rs
-    #[doc(hidden)]
-    pub fn gather() -> Self {
+    fn gather() -> Self {
         Self {
             profile: env!("RUMMAGE_PROFILE").to_string(),
             host: env!("RUMMAGE_HOST").to_string(),
@@ -91,6 +130,7 @@ impl CargoTarget {
     }
 }
 
+/// Details about the version of rustc that built this crate
 #[derive(Debug)]
 pub struct RustcVersion {
     pub rustc_semver: String,
@@ -102,8 +142,7 @@ pub struct RustcVersion {
 impl RustcVersion {
     /// This method only works when called from within the rummage crate, as it relies on cargo
     /// environment variables rummage sets in its own build.rs
-    #[doc(hidden)]
-    pub fn gather() -> Self {
+    fn gather() -> Self {
         let major = env!("RUMMAGE_RUSTC_VERSION_MAJOR");
         let minor = env!("RUMMAGE_RUSTC_VERSION_MINOR");
         let patch = env!("RUMMAGE_RUSTC_VERSION_PATCH");
@@ -162,29 +201,7 @@ impl CompileInfo {
     }
 }
 
-#[derive(Debug)]
-pub struct CpuInfo {
-    pub vendor: String,
-    pub brand_string: String,
-}
-
-impl CpuInfo {
-    #[doc(hidden)]
-    pub fn gather() -> Self {
-        let cpuid = raw_cpuid::CpuId::new();
-        Self {
-            vendor: cpuid
-                .get_vendor_info()
-                .map(|v| v.as_str().to_string())
-                .unwrap_or_default(),
-            brand_string: cpuid
-                .get_processor_brand_string()
-                .map(|s| s.as_str().to_string())
-                .unwrap_or_default(),
-        }
-    }
-}
-
+/// Runtime information about the system actually running the binary
 #[derive(Debug)]
 pub struct SystemInfo {
     pub hostname: Option<String>,
@@ -222,7 +239,7 @@ impl SystemInfo {
     }
 
     pub fn log_debug(&self) {
-        fn map_optional_string<'a>(s: &'a Option<String>) -> &'a str {
+        fn map_optional_string(s: &Option<String>) -> &str {
             s.as_ref().map(|s| s.as_str()).unwrap_or("<failed to get>")
         }
 
@@ -233,11 +250,19 @@ impl SystemInfo {
             linux_distro = map_optional_string(&self.linux_distro),
             cpu_vendor = map_optional_string(&self.cpu_vendor),
             cpu_brand_string = map_optional_string(&self.cpu_brand_string),
-            "System information"
+            "System information:"
         )
     }
 }
 
+/// Top level info struct returned by [`info!`]
+/// 
+/// Example usage:
+/// ```
+/// rummage::info!()
+///     .with_envvars(["RUST_LOG", "HOME", "MY_ENVVAR"])
+///     .log_debug();
+/// ```
 #[derive(Debug)]
 pub struct RummageInfo {
     /// Information about the crate that contains the [`info!()`] invocation
@@ -263,6 +288,8 @@ pub struct RummageInfo {
 }
 
 impl RummageInfo {
+    /// Enriches the content of this [`RummageInfo`] with the value of the given environment
+    /// variable
     pub fn with_envvar(mut self, name: impl AsRef<str>) -> Self {
         let name = name.as_ref().to_string();
         let value = std::env::var(&name).ok();
@@ -270,6 +297,8 @@ impl RummageInfo {
         self
     }
 
+    /// Enrichves the content of this [`RummageInfo`] with the values of all the given environment
+    /// variables
     pub fn with_envvars(mut self, names: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
         for name in names {
             self = self.with_envvar(name);
@@ -292,11 +321,16 @@ impl RummageInfo {
         tracing::event!(
             Level::DEBUG,
             args = format!("{:?}", self.envvars),
-            "Collected environment variables"
+            "Environment variables:"
         );
     }
 }
 
+/// Build a [`RummageInfo`] struct containing all of the standard infomation sets
+/// 
+/// Needs to be a macro, as some information depends on which crate is actually executing the code.
+/// If it were a regular function call, properties such as crate name/version would always just
+/// refer to the build of `rummage` itself rather than the crate being instrumented.
 #[macro_export]
 macro_rules! info {
     () => {{
