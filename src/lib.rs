@@ -323,7 +323,7 @@ impl RummageInfo {
     }
 
     /// Emits the contained information as [`tracing`] events, at the DEBUG level
-    pub fn log_debug(self) {
+    pub fn log_debug(&self) {
         self.crate_info.log_debug();
         self.compile_info.log_debug();
         self.system_info.log_debug();
