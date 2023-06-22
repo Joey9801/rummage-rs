@@ -11,7 +11,7 @@ pub use git_version::git_version;
 
 /// Information about the crate that contains the [`info!`] invocation
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CrateInfo {
     /// The full SHA256 commit hash of the git repository
     pub git_commit_hash: String,
@@ -77,7 +77,7 @@ macro_rules! _crate_info {
 /// How Cargo was configured while building the crate containing the crate containing the [`info!`]
 /// invocation
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CargoTarget {
     /// Typically either "debug" or "release"
     pub profile: String,
@@ -144,7 +144,7 @@ impl CargoTarget {
 
 /// Details about the version of rustc that built this crate
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RustcVersion {
     pub rustc_semver: String,
     pub commit_hash: String,
@@ -194,7 +194,7 @@ impl RustcVersion {
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CompileInfo {
     pub target: CargoTarget,
     pub rustc: RustcVersion,
@@ -217,7 +217,7 @@ impl CompileInfo {
 
 /// Runtime information about the system actually running the binary
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SystemInfo {
     pub hostname: Option<String>,
     pub os: String,
@@ -279,7 +279,7 @@ impl SystemInfo {
 ///     .log_debug();
 /// ```
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RummageInfo {
     /// Information about the crate that contains the [`info!()`] invocation
     pub crate_info: CrateInfo,
