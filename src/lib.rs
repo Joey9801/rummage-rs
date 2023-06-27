@@ -7,7 +7,18 @@ use std::collections::HashMap;
 use tracing::Level;
 
 #[doc(hidden)]
+#[cfg(feature = "git-version")]
 pub use git_version::git_version;
+
+#[cfg(not(feature = "git-version"))]
+#[macro_export]
+macro_rules! git_version {
+    (
+        $( args = [ $( $arg:literal ),* $(,)? ])?
+    ) => {
+        "rummage-rs built without the 'git-version' feature"
+    };
+}
 
 /// Information about the crate that contains the [`info!`] invocation
 #[cfg_attr(feature = "serde", derive(Serialize))]
